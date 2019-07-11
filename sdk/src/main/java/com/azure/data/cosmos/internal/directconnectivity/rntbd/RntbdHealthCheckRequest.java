@@ -24,38 +24,13 @@
 
 package com.azure.data.cosmos.internal.directconnectivity.rntbd;
 
-import com.azure.data.cosmos.BridgeInternal;
-import com.azure.data.cosmos.CosmosError;
-import com.azure.data.cosmos.internal.directconnectivity.TransportException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
-import java.util.Map;
+final class RntbdHealthCheckRequest {
 
-public final class RntbdContextException extends TransportException {
+    public static final ByteBuf MESSAGE = Unpooled.EMPTY_BUFFER;
 
-    final private CosmosError error;
-    final private Map<String, Object> responseHeaders;
-    final private HttpResponseStatus status;
-
-    RntbdContextException(HttpResponseStatus status, ObjectNode details, Map<String, Object> responseHeaders) {
-
-        super(status + ": " + details, null);
-
-        this.error = BridgeInternal.createCosmosError(details);
-        this.responseHeaders = responseHeaders;
-        this.status = status;
-    }
-
-    public CosmosError getError() {
-        return error;
-    }
-
-    public Map<String, Object> getResponseHeaders() {
-        return responseHeaders;
-    }
-
-    public HttpResponseStatus getStatus() {
-        return status;
+    private RntbdHealthCheckRequest() {
     }
 }

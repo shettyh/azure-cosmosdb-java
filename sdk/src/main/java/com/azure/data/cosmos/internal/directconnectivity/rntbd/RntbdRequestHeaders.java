@@ -24,7 +24,6 @@
 
 package com.azure.data.cosmos.internal.directconnectivity.rntbd;
 
-
 import com.azure.data.cosmos.ConsistencyLevel;
 import com.azure.data.cosmos.IndexingDirective;
 import com.azure.data.cosmos.internal.ContentSerializationFormat;

@@ -26,18 +26,18 @@ package com.azure.data.cosmos.internal.directconnectivity.rntbd;
 
 import com.azure.data.cosmos.BridgeInternal;
 import com.azure.data.cosmos.GoneException;
-import com.azure.data.cosmos.internal.HttpConstants;
-import com.azure.data.cosmos.internal.directconnectivity.RntbdTransportClient.Options;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
@@ -50,21 +50,26 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import static com.azure.data.cosmos.internal.HttpConstants.HttpHeaders;
+import static com.azure.data.cosmos.internal.directconnectivity.RntbdTransportClient.Options;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 @JsonSerialize(using = RntbdServiceEndpoint.JsonSerializer.class)
 public final class RntbdServiceEndpoint implements RntbdEndpoint {
 
+    private static final long QUIET_PERIOD = 2L * 1_000_000_000L;
+
     private static final AtomicLong instanceCount = new AtomicLong();
     private static final Logger logger = LoggerFactory.getLogger(RntbdServiceEndpoint.class);
     private static final String namePrefix = RntbdServiceEndpoint.class.getSimpleName() + '-';
 
-    private final RntbdClientChannelPool channelPool;
+    private final ChannelPool channelPool;
     private final AtomicBoolean closed;
     private final RntbdMetrics metrics;
     private final String name;
@@ -81,7 +86,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
             .channel(NioSocketChannel.class)
             .group(group)
             .option(ChannelOption.AUTO_READ, true)
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectionTimeout())
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.connectionTimeout())
             .option(ChannelOption.SO_KEEPALIVE, true)
             .remoteAddress(physicalAddress.getHost(), physicalAddress.getPort());
 
@@ -98,7 +103,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
     // region Accessors
 
     @Override
-    public String getName() {
+    public String name() {
         return this.name;
     }
 
@@ -213,9 +218,9 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
                 final String reason = cause.getMessage();
 
                 final GoneException goneException = new GoneException(
-                    String.format("failed to establish connection to %s: %s", this.remoteAddress, reason),
+                    Strings.lenientFormat("failed to establish connection to %s: %s", this.remoteAddress, reason),
                     cause instanceof Exception ? (Exception)cause : new IOException(reason, cause),
-                    ImmutableMap.of(HttpConstants.HttpHeaders.ACTIVITY_ID, activityId.toString()),
+                    ImmutableMap.of(HttpHeaders.ACTIVITY_ID, activityId.toString()),
                     requestArgs.getReplicaPath()
                 );
 
@@ -234,11 +239,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
     static final class JsonSerializer extends StdSerializer<RntbdServiceEndpoint> {
 
         public JsonSerializer() {
-            this(null);
-        }
-
-        public JsonSerializer(Class<RntbdServiceEndpoint> type) {
-            super(type);
+            super(RntbdServiceEndpoint.class);
         }
 
         @Override
@@ -280,7 +281,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
             }
 
             this.config = new Config(options, sslContext, wireLogLevel);
-            this.requestTimer = new RntbdRequestTimer(config.getRequestTimeout());
+            this.requestTimer = new RntbdRequestTimer(config.requestTimeout());
             this.eventLoopGroup = new NioEventLoopGroup(threadCount, threadFactory);
         }
 
@@ -295,7 +296,7 @@ public final class RntbdServiceEndpoint implements RntbdEndpoint {
                     endpoint.close();
                 }
 
-                this.eventLoopGroup.shutdownGracefully().addListener(future -> {
+                this.eventLoopGroup.shutdownGracefully(QUIET_PERIOD, this.config.shutdownTimeout(), TimeUnit.NANOSECONDS).addListener(future -> {
                     if (future.isSuccess()) {
                         logger.debug("\n  [{}]\n  closed endpoints", this);
                         return;

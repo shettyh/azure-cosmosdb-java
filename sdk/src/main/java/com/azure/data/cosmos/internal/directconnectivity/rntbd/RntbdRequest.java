@@ -26,6 +26,7 @@ package com.azure.data.cosmos.internal.directconnectivity.rntbd;
 
 import com.azure.data.cosmos.internal.RxDocumentServiceRequest;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 
 import java.util.UUID;
@@ -35,7 +36,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class RntbdRequest {
 
-    private static final byte[] EmptyByteArray = {};
+    private static final byte[] EMPTY_BYTE_ARRAY = {};
 
     private final RntbdRequestFrame frame;
     private final RntbdRequestHeaders headers;
@@ -48,7 +49,7 @@ public final class RntbdRequest {
 
         this.frame = frame;
         this.headers = headers;
-        this.payload = payload == null ? EmptyByteArray : payload;
+        this.payload = payload == null ? EMPTY_BYTE_ARRAY : payload;
     }
 
     public UUID getActivityId() {
@@ -84,7 +85,7 @@ public final class RntbdRequest {
         final int observedLength = in.readerIndex() - start;
 
         if (observedLength != expectedLength) {
-            final String reason = String.format("expectedLength=%d, observedLength=%d", expectedLength, observedLength);
+            final String reason = Strings.lenientFormat("expectedLength=%s, observedLength=%s", expectedLength, observedLength);
             throw new IllegalStateException(reason);
         }
 

@@ -41,6 +41,7 @@ import com.azure.data.cosmos.internal.directconnectivity.RntbdTransportClient;
 import com.azure.data.cosmos.internal.directconnectivity.ServerProperties;
 import com.azure.data.cosmos.internal.directconnectivity.RntbdTransportClient;
 import com.azure.data.cosmos.internal.directconnectivity.ServerProperties;
+import com.azure.data.cosmos.internal.directconnectivity.rntbd.RntbdClientChannelHealthChecker;
 import com.azure.data.cosmos.internal.directconnectivity.rntbd.RntbdContext;
 import com.azure.data.cosmos.internal.directconnectivity.rntbd.RntbdContextNegotiator;
 import com.azure.data.cosmos.internal.directconnectivity.rntbd.RntbdContextRequest;
@@ -835,12 +836,12 @@ public final class RntbdTransportClientTest {
                 expected.length, true, Arrays.asList(expected)
             );
 
-            RntbdRequestManager requestManager = new RntbdRequestManager(30);
+            RntbdRequestManager requestManager = new RntbdRequestManager(new RntbdClientChannelHealthChecker(config), 30);
             this.physicalAddress = physicalAddress;
             this.requestTimer = timer;
 
             this.fakeChannel = new FakeChannel(responses,
-                new RntbdContextNegotiator(requestManager, config.getUserAgent()),
+                new RntbdContextNegotiator(requestManager, config.userAgent()),
                 new RntbdRequestEncoder(),
                 new RntbdResponseDecoder(),
                 requestManager
@@ -848,7 +849,7 @@ public final class RntbdTransportClientTest {
         }
 
         @Override
-        public String getName() {
+        public String name() {
             return "FakeEndpoint";
         }
 
@@ -872,7 +873,7 @@ public final class RntbdTransportClientTest {
 
             Provider(RntbdTransportClient.Options options, SslContext sslContext, RntbdResponse expected) {
                 this.config = new Config(options, sslContext, LogLevel.WARN);
-                this.timer = new RntbdRequestTimer(config.getRequestTimeout());
+                this.timer = new RntbdRequestTimer(config.requestTimeout());
                 this.expected = expected;
             }
 

@@ -25,9 +25,14 @@
 package com.azure.data.cosmos.internal.directconnectivity.rntbd;
 
 import com.azure.data.cosmos.internal.UserAgentContainer;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.ssl.SslContext;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.stream.Stream;
 
@@ -36,7 +41,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public interface RntbdEndpoint extends AutoCloseable {
 
-    String getName();
+    String name();
 
     @Override
     void close() throws RuntimeException;
@@ -57,6 +62,7 @@ public interface RntbdEndpoint extends AutoCloseable {
         Stream<RntbdEndpoint> list();
     }
 
+    @JsonSerialize(using = Config.JsonSerializer.class)
     final class Config {
 
         private final Options options;
@@ -73,47 +79,78 @@ public interface RntbdEndpoint extends AutoCloseable {
             this.wireLogLevel = wireLogLevel;
         }
 
-        public int getConnectionTimeout() {
-            final long value = this.options.getConnectionTimeout().toMillis();
+        public int connectionTimeout() {
+            final long value = this.options.connectionTimeout().toMillis();
             assert value <= Integer.MAX_VALUE;
             return (int)value;
         }
 
-        public int getMaxChannelsPerEndpoint() {
-            return this.options.getMaxChannelsPerEndpoint();
+        public long idleConnectionTimeout() {
+            return this.options.idleTimeout().toNanos();
         }
 
-        public int getMaxRequestsPerChannel() {
-            return this.options.getMaxRequestsPerChannel();
+        public int maxChannelsPerEndpoint() {
+            return this.options.maxChannelsPerEndpoint();
         }
 
-        public long getReceiveHangDetectionTime() {
-            return this.options.getReceiveHangDetectionTime().toNanos();
+        public int maxRequestsPerChannel() {
+            return this.options.maxRequestsPerChannel();
         }
 
-        public long getRequestTimeout() {
-            return this.options.getRequestTimeout().toNanos();
+        public long receiveHangDetectionTime() {
+            return this.options.receiveHangDetectionTime().toNanos();
         }
 
-        public long getSendHangDetectionTime() {
-            return this.options.getSendHangDetectionTime().toNanos();
+        public long requestTimeout() {
+            return this.options.requestTimeout().toNanos();
         }
 
-        public SslContext getSslContext() {
+        public long sendHangDetectionTime() {
+            return this.options.sendHangDetectionTime().toNanos();
+        }
+
+        public long shutdownTimeout() {
+            return this.options.shutdownTimeout().toNanos();
+        }
+
+        public SslContext sslContext() {
             return this.sslContext;
         }
 
-        public UserAgentContainer getUserAgent() {
-            return this.options.getUserAgent();
+        public UserAgentContainer userAgent() {
+            return this.options.userAgent();
         }
 
-        public LogLevel getWireLogLevel() {
+        public LogLevel wireLogLevel() {
             return this.wireLogLevel;
         }
 
         @Override
         public String toString() {
-            return RntbdObjectMapper.toJson(this);
+            return "RntbdEndpoint.Config(" + RntbdObjectMapper.toJson(this) + ')';
+        }
+
+        static class JsonSerializer extends StdSerializer<Config> {
+
+            public JsonSerializer() {
+                super(Config.class);
+            }
+
+            @Override
+            public void serialize(Config value, JsonGenerator generator, SerializerProvider provider) throws IOException {
+                generator.writeStartObject();
+                generator.writeNumberField("connectionTimeout", value.connectionTimeout());
+                generator.writeNumberField("idleConnectionTimeout", value.idleConnectionTimeout());
+                generator.writeNumberField("maxChannelPerEndpoint", value.maxChannelsPerEndpoint());
+                generator.writeNumberField("maxRequestsPerChannel", value.maxChannelsPerEndpoint());
+                generator.writeNumberField("receiveHangDetectionTime", value.receiveHangDetectionTime());
+                generator.writeNumberField("requestTimeout", value.requestTimeout());
+                generator.writeNumberField("sendHangDetectionTime", value.sendHangDetectionTime());
+                generator.writeNumberField("shutdownTimeout", value.shutdownTimeout());
+                generator.writeObjectField("userAgent", value.userAgent());
+                generator.writeStringField("wireLogLevel", value.wireLogLevel() == null ? null : value.wireLogLevel().toString());
+                generator.writeEndObject();
+            }
         }
     }
 }

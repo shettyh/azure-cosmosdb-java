@@ -252,9 +252,11 @@ abstract class AsyncBenchmark<T> {
 
                 @Override
                 public void onNext(T value) {
-                    // Get the RU's for the request
-                    ResourceResponse<Document> response = (ResourceResponse<Document>)value;
-                    ruMeter.mark((long)response.getRequestCharge());
+                    if(configuration.isEnableRuStats()) {
+                        // Get the RU's for the request
+                        ResourceResponse<Document> response = (ResourceResponse<Document>) value;
+                        ruMeter.mark((long) response.getRequestCharge());
+                    }
                 }
             };
 

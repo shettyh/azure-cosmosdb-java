@@ -134,6 +134,9 @@ class Configuration {
     @Parameter(names = "-numberOfPreCreatedDocuments", description = "Total Number Of Documents To pre create for a read workload to use")
     private int numberOfPreCreatedDocuments = 1000;
 
+    @Parameter(names = "-enableRuStats", description = "Enables Cosmos RU Stats")
+    private boolean enableRuStats;
+
     @Parameter(names = {"-h", "-help", "--help"}, description = "Help", help = true)
     private boolean help = false;
 
@@ -260,6 +263,8 @@ class Configuration {
     int getNumberOfPreCreatedDocuments() {
         return numberOfPreCreatedDocuments;
     }
+
+    boolean isEnableRuStats() { return enableRuStats; }
 
     int getPrintingInterval() {
         return printingInterval;

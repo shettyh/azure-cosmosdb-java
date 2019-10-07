@@ -358,6 +358,7 @@ class Configuration {
         String numberOfOperationsValue = StringUtils.defaultString(
                 Strings.emptyToNull(System.getenv().get("NUMBER_OF_OPERATIONS")), Integer.toString(numberOfOperations));
         numberOfOperations = Integer.parseInt(numberOfOperationsValue);
+
     }
 
     private synchronized MeterRegistry azureMonitorMeterRegistry(String instrumentationKey) {

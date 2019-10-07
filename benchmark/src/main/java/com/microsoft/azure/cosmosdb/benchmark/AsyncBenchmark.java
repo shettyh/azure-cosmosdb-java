@@ -204,11 +204,14 @@ abstract class AsyncBenchmark<T> {
 
         successMeter = metricsRegistry.meter("#Successful Operations");
         failureMeter = metricsRegistry.meter("#Unsuccessful Operations");
-        ruMeter = metricsRegistry.meter("# RU's consumed");
 
         if (configuration.getOperationType() == Operation.ReadLatency
                 || configuration.getOperationType() == Operation.WriteLatency)
             latency = metricsRegistry.timer("Latency");
+
+        if (configuration.isEnableRuStats()) {
+            ruMeter = metricsRegistry.meter("# RU's consumed");
+        }
 
         reporter.start(configuration.getPrintingInterval(), TimeUnit.SECONDS);
 

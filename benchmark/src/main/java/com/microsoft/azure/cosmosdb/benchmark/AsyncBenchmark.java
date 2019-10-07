@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscriber;
 
+import javax.print.Doc;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -63,6 +64,8 @@ abstract class AsyncBenchmark<T> {
 
     private Meter successMeter;
     private Meter failureMeter;
+    //For Azure Cosmos RU's capturing
+    private Meter ruMeter;
 
     final Logger logger;
     final AsyncDocumentClient client;
@@ -201,6 +204,8 @@ abstract class AsyncBenchmark<T> {
 
         successMeter = metricsRegistry.meter("#Successful Operations");
         failureMeter = metricsRegistry.meter("#Unsuccessful Operations");
+        ruMeter = metricsRegistry.meter("# RU's consumed");
+
         if (configuration.getOperationType() == Operation.ReadLatency
                 || configuration.getOperationType() == Operation.WriteLatency)
             latency = metricsRegistry.timer("Latency");
@@ -247,6 +252,9 @@ abstract class AsyncBenchmark<T> {
 
                 @Override
                 public void onNext(T value) {
+                    // Get the RU's for the request
+                    ResourceResponse<Document> response = (ResourceResponse<Document>)value;
+                    ruMeter.mark((long)response.getRequestCharge());
                 }
             };
 

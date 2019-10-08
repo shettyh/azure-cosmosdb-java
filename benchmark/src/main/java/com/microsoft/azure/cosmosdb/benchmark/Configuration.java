@@ -48,7 +48,9 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 class Configuration {
 
@@ -136,6 +138,9 @@ class Configuration {
 
     @Parameter(names = "-enableRuStats", description = "Enables Cosmos RU Stats")
     private boolean enableRuStats;
+
+    @Parameter(names = "-preferredLocations", description = "Comma-separated list of Preferred regions list")
+    private List<String> preferredLocations;
 
     @Parameter(names = {"-h", "-help", "--help"}, description = "Help", help = true)
     private boolean help = false;
@@ -245,6 +250,7 @@ class Configuration {
         ConnectionPolicy policy = new ConnectionPolicy();
         policy.setConnectionMode(connectionMode);
         policy.setMaxPoolSize(maxConnectionPoolSize);
+        policy.setPreferredLocations(preferredLocations);
         return policy;
     }
 
